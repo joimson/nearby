@@ -22,6 +22,10 @@ namespace nearby {
 namespace connections {
 namespace mediums {
 
+// TODO(edwinwu): The peripheral class is for core to transmit "advertisement
+// byte array when peripheral discovered in track class, which is not the same
+// as the one in BluetoothAdapter. We need to see how to differentiate between
+// these this BlePeripheral and BleV2Peripheral.
 class BlePeripheral {
  public:
   BlePeripheral() = default;
@@ -37,7 +41,7 @@ class BlePeripheral {
 
  private:
   // A unique identifier for this peripheral. It can be the BLE advertisement it
-  // was found on, or even simply the BLE MAC address.
+  // was found on.
   ByteArray id_;
 };
 

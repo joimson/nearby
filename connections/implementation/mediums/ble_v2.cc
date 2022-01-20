@@ -223,7 +223,7 @@ bool BleV2::StartAdvertising(
   }
 
   if (!medium_.StartAdvertising(advertising_data, scan_response_data,
-                                power_mode)) {
+                                PowerLevelToPowerMode(power_level))) {
     NEARBY_LOGS(ERROR)
         << "Failed to turn on BLE advertising with advertisement bytes="
         << absl::BytesToHexString(advertisement_bytes.data())
@@ -291,10 +291,93 @@ bool BleV2::IsAdvertising(const std::string& service_id) const {
   return IsAdvertisingLocked(service_id);
 }
 
+bool BleV2::StartScanning(const std::string& service_id,
+                          DiscoveredPeripheralCallback callback,
+                          PowerLevel power_level,
+                          const std::string& fast_advertisement_service_uuid) {
+  MutexLock lock(&mutex_);
+
+  discovered_peripheral_callback_ = std::move(callback);
+
+  if (service_id.empty()) {
+    NEARBY_LOGS(INFO)
+        << "Refusing to start BLE scanning with empty service id.";
+    return false;
+  }
+
+  if (IsScanningLocked(service_id)) {
+    NEARBY_LOGS(INFO) << "Refusing to start scan of BLE peripherals because "
+                         "another scanning is already in-progress.";
+    return false;
+  }
+
+  if (!radio_.IsEnabled()) {
+    NEARBY_LOGS(INFO)
+        << "Can't start BLE scanning because Bluetooth was never turned on";
+    return false;
+  }
+
+  if (!IsAvailableLocked()) {
+    NEARBY_LOGS(INFO)
+        << "Can't scan BLE peripherals because BLE isn't available.";
+    return false;
+  }
+
+  // TODO(edwinwu): Start discovered peripheral tracking.
+
+  std::vector<std::string> service_uuids{std::string(kCopresenceServiceUuid)};
+  if (!medium_.StartScanning(
+          service_uuids, PowerLevelToPowerMode(power_level),
+          {
+              .advertisement_found_cb =
+                  [](BleV2Peripheral& peripheral,
+                     const BleAdvertisementData& advertisement_data) {
+                    // TODO(edwinwu): Track the found advertisement.
+                  },
+          })) {
+    NEARBY_LOGS(INFO) << "Failed to start scan of BLE services.";
+    return false;
+  }
+
+  NEARBY_LOGS(INFO) << "Turned on BLE scanning with service id=" << service_id;
+  // Mark the fact that we're currently performing a BLE scanning.
+  scanning_info_.Add(service_id);
+  return true;
+}
+
+bool BleV2::StopScanning(const std::string& service_id) {
+  MutexLock lock(&mutex_);
+
+  if (!IsScanningLocked(service_id)) {
+    NEARBY_LOGS(INFO) << "Can't turn off BLE sacanning because we never "
+                         "started scanning.";
+    return false;
+  }
+
+  // TODO(edwinwu): Cancel lost alarm
+
+  NEARBY_LOG(INFO, "Turned off BLE scanning with service id=%s",
+             service_id.c_str());
+  bool ret = medium_.StopScanning();
+  // TODO(edwinwu): Stop tracking.
+  scanning_info_.Remove(service_id);
+  return ret;
+}
+
+bool BleV2::IsScanning(const std::string& service_id) const {
+  MutexLock lock(&mutex_);
+
+  return IsScanningLocked(service_id);
+}
+
 bool BleV2::IsAvailableLocked() const { return medium_.IsValid(); }
 
 bool BleV2::IsAdvertisingLocked(const std::string& service_id) const {
-  return advertising_info_.Existed(service_id);
+  return advertising_info_.Exists(service_id);
+}
+
+bool BleV2::IsScanningLocked(const std::string& service_id) const {
+  return scanning_info_.Exists(service_id);
 }
 
 bool BleV2::IsAdvertisementGattServerRunningLocked() {
@@ -420,6 +503,22 @@ ByteArray BleV2::CreateAdvertisementHeader() {
 
 std::string BleV2::GenerateAdvertisementUuid(int slot) {
   return std::string(Uuid(kAdvertisementUuidMsb, kAdvertisementUuidLsb | slot));
+}
+
+PowerMode BleV2::PowerLevelToPowerMode(PowerLevel power_level) {
+  PowerMode power_mode = PowerMode::kUnknown;
+  switch (power_level) {
+    case PowerLevel::kHighPower:
+      power_mode = PowerMode::kHigh;
+      break;
+    case PowerLevel::kLowPower:
+      // it won't be visible at a distance.
+      power_mode = PowerMode::kMedium;
+      break;
+    default:
+      power_mode = PowerMode::kUnknown;
+  }
+  return power_mode;
 }
 
 }  // namespace connections

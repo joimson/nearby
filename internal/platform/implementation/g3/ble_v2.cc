@@ -77,20 +77,8 @@ bool BleV2Medium::StartAdvertising(
 
   absl::MutexLock lock(&mutex_);
   auto& env = MediumEnvironment::Instance();
-  // If `advertising_data.service_uuids` is empty, then it is fast
-  // advertisement. In real case, this should be the CopresenceServiceUuid or
-  // the fastAdvertisementUuid.
-  bool is_fast_advertisement = !advertising_data.service_uuids.empty();
-  for (const auto& service_data : scan_response_data.service_data) {
-    // Interested item found in the first index.
-    advertisement_byte_ = service_data.second;
-    if (!advertisement_byte_.Empty()) {
-      break;
-    }
-  }
-  if (advertisement_byte_.Empty()) return false;
-  env.UpdateBleV2MediumForAdvertising(is_fast_advertisement, true, *this,
-                                      &advertisement_byte_);
+  env.UpdateBleV2MediumForAdvertising(
+      /*enabled=*/true, *this, adapter_->GetPeripheralV2(), scan_response_data);
   return true;
 }
 
@@ -100,19 +88,30 @@ bool BleV2Medium::StopAdvertising() {
   advertisement_byte_ = {};
 
   auto& env = MediumEnvironment::Instance();
+  BleAdvertisementData empty_advertisement_data = {};
   env.UpdateBleV2MediumForAdvertising(
-      /*is_fast_advertisement=*/false,
-      /*enabled=*/false, *this, &advertisement_byte_);
+      /*enabled=*/false, *this, adapter_->GetPeripheralV2(),
+      empty_advertisement_data);
   return true;
 }
 
 bool BleV2Medium::StartScanning(const std::vector<std::string>& service_uuids,
                                 PowerMode power_mode,
-                                ScanCallback scan_callback) {
-  return false;
+                                ScanCallback callback) {
+  NEARBY_LOGS(INFO) << "G3 Ble StartScanning";
+
+  auto& env = MediumEnvironment::Instance();
+  env.UpdateBleV2MediumForScanning(true, std::move(callback), *this);
+  return true;
 }
 
-bool BleV2Medium::StopScanning() { return false; }
+bool BleV2Medium::StopScanning() {
+  NEARBY_LOGS(INFO) << "G3 Ble StopScanning";
+
+  auto& env = MediumEnvironment::Instance();
+  env.UpdateBleV2MediumForScanning(false, {}, *this);
+  return true;
+}
 
 std::unique_ptr<api::ble_v2::GattServer> BleV2Medium::StartGattServer(
     ServerGattConnectionCallback callback) {

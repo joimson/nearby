@@ -94,6 +94,18 @@ class GattServer final {
 // Container of operations that can be performed over the BLE medium.
 class BleV2Medium final {
  public:
+  struct ScanCallback {
+    std::function<void(
+        BleV2Peripheral& peripheral,
+        const api::ble_v2::BleAdvertisementData& advertisement_data)>
+        advertisement_found_cb = location::nearby::DefaultCallback<
+            BleV2Peripheral&, const api::ble_v2::BleAdvertisementData&>();
+  };
+
+  struct ScanningInfo {
+    BleV2Peripheral peripheral;
+  };
+
   struct ServerGattConnectionCallback {
     std::function<void(ServerGattConnection& connection,
                        const api::ble_v2::GattCharacteristic& characteristic)>
@@ -117,6 +129,11 @@ class BleV2Medium final {
       api::ble_v2::PowerMode power_mode);
   bool StopAdvertising();
 
+  // Returns true once the BLE scan has been initiated.
+  bool StartScanning(const std::vector<std::string>& service_uuids,
+                     api::ble_v2::PowerMode power_mode, ScanCallback callback);
+  bool StopScanning();
+
   std::unique_ptr<GattServer> StartGattServer(
       ServerGattConnectionCallback callback);
 
@@ -130,6 +147,11 @@ class BleV2Medium final {
   BluetoothAdapter& adapter_;
   ServerGattConnectionCallback server_gatt_connection_callback_
       ABSL_GUARDED_BY(mutex_);
+  absl::flat_hash_map<api::ble_v2::BlePeripheral*,
+                      std::unique_ptr<ScanningInfo>>
+      peripherals_ ABSL_GUARDED_BY(mutex_);
+  ScanCallback scan_callback_ ABSL_GUARDED_BY(mutex_);
+  bool scanning_enabled_ ABSL_GUARDED_BY(mutex_) = false;
 };
 
 }  // namespace nearby

@@ -16,6 +16,7 @@
 
 #include <memory>
 
+#include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
@@ -35,6 +36,56 @@ bool BleV2Medium::StartAdvertising(
 }
 
 bool BleV2Medium::StopAdvertising() { return impl_->StopAdvertising(); }
+
+bool BleV2Medium::StartScanning(const std::vector<std::string>& service_uuids,
+                                PowerMode power_mode, ScanCallback callback) {
+  MutexLock lock(&mutex_);
+  if (scanning_enabled_) {
+    NEARBY_LOG(INFO, "Ble Scanning already enabled; impl=%p", GetImpl());
+    return false;
+  }
+  bool success = impl_->StartScanning(
+      service_uuids, power_mode,
+      {
+          .advertisement_found_cb =
+              [this](api::ble_v2::BlePeripheral& peripheral,
+                     const BleAdvertisementData& advertisement_data) {
+                MutexLock lock(&mutex_);
+                auto pair = peripherals_.insert(
+                    {&peripheral, absl::make_unique<ScanningInfo>()});
+                auto& context = *pair.first->second;
+                if (!pair.second) {
+                  NEARBY_LOGS(INFO)
+                      << "Adding (again) peripheral=" << &context.peripheral
+                      << ", impl=" << &peripheral;
+                  return;
+                }
+                context.peripheral = BleV2Peripheral(&peripheral);
+                NEARBY_LOGS(INFO) << "Adding peripheral=" << &context.peripheral
+                                  << ", impl=" << &peripheral;
+                if (!scanning_enabled_) return;
+                scan_callback_.advertisement_found_cb(context.peripheral,
+                                                      advertisement_data);
+              },
+      });
+  if (success) {
+    scan_callback_ = std::move(callback);
+    peripherals_.clear();
+    scanning_enabled_ = true;
+    NEARBY_LOG(INFO, "Ble Scanning enabled; impl=%p", GetImpl());
+  }
+  return true;
+}
+
+bool BleV2Medium::StopScanning() {
+  MutexLock lock(&mutex_);
+  if (!scanning_enabled_) return true;
+  scanning_enabled_ = false;
+  scan_callback_ = {};
+  peripherals_.clear();
+  NEARBY_LOG(INFO, "Ble Scanning disabled: impl=%p", GetImpl());
+  return impl_->StopScanning();
+}
 
 std::unique_ptr<GattServer> BleV2Medium::StartGattServer(
     ServerGattConnectionCallback callback) {
