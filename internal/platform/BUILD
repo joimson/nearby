@@ -304,12 +304,14 @@ cc_library(
     name = "comm",
     srcs = [
         "ble.cc",
+        "ble_v2.cc",
         "bluetooth_classic.cc",
         "file.cc",
         "wifi_lan.cc",
     ],
     hdrs = [
         "ble.h",
+        "ble_v2.h",
         "bluetooth_adapter.h",
         "bluetooth_classic.h",
         "wifi_lan.h",
