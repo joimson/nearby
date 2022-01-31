@@ -16,7 +16,7 @@
 
 #include <shlobj.h>
 
-#include "absl/strings/str_cat.h"
+#include <sstream>
 
 namespace test_utils {
 std::wstring StringToWideString(const std::string& s) {
@@ -49,13 +49,18 @@ std::string GetPayloadPath(location::nearby::PayloadId payload_id) {
                    // SHGetKnownFolderPath succeeds or not.
 
   size_t bufferSize;
+  // Get the required buffer size.
   wcstombs_s(&bufferSize, NULL, 0, basePath, 0);
-  char* fullpathUTF8 = new char[bufferSize + 1];
-  memset(fullpathUTF8, 0, bufferSize);
-  wcstombs_s(&bufferSize, fullpathUTF8, bufferSize, basePath, bufferSize - 1);
+  std::string fullpathUTF8(bufferSize, NULL);
+  wcstombs_s(&bufferSize, fullpathUTF8.data(), bufferSize, basePath, _TRUNCATE);
   std::string fullPath = std::string(fullpathUTF8);
-  auto retval = absl::StrCat(fullPath += "\\", payload_id);
-  delete[] fullpathUTF8;
+  // Clean up the string by removing null's
+  fullPath.erase(std::find(fullPath.begin(), fullPath.end(), '\0'),
+                 fullPath.end());
+  std::stringstream path("");
+
+  path << fullPath << "\\" << std::to_string(payload_id);
+  auto retval = path.str();
   return retval;
 }
 }  // namespace test_utils

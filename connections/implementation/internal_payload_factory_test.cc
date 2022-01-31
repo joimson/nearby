@@ -58,16 +58,15 @@ TEST(InternalPayloadFActoryTest, CanCreateIternalPayloadFromStreamPayload) {
 
 TEST(InternalPayloadFActoryTest, CanCreateIternalPayloadFromFilePayload) {
   Payload::Id payload_id = Payload::GenerateId();
+  InputFile inputFile(payload_id, 512);
   std::unique_ptr<InternalPayload> internal_payload =
-      CreateOutgoingInternalPayload(
-          Payload{payload_id, InputFile(payload_id, 512)});
+      CreateOutgoingInternalPayload(Payload{payload_id, std::move(inputFile)});
   EXPECT_NE(internal_payload, nullptr);
   Payload payload = internal_payload->ReleasePayload();
   EXPECT_NE(payload.AsFile(), nullptr);
   EXPECT_EQ(payload.AsStream(), nullptr);
   EXPECT_EQ(payload.AsBytes(), ByteArray());
   EXPECT_EQ(payload.GetId(), payload_id);
-  EXPECT_EQ(payload.AsFile()->GetPayloadId(), payload_id);
 }
 
 TEST(InternalPayloadFActoryTest, CanCreateIternalPayloadFromByteMessage) {
@@ -107,7 +106,7 @@ TEST(InternalPayloadFActoryTest, CanCreateIternalPayloadFromStreamMessage) {
   EXPECT_EQ(payload.AsFile(), nullptr);
   EXPECT_NE(payload.AsStream(), nullptr);
   EXPECT_EQ(payload.AsBytes(), ByteArray());
-  EXPECT_EQ(payload.GetType(), Payload::Type::kStream);
+  EXPECT_EQ(payload.GetType(), PayloadType::kStream);
 }
 
 TEST(InternalPayloadFActoryTest, CanCreateIternalPayloadFromFileMessage) {
@@ -124,8 +123,7 @@ TEST(InternalPayloadFActoryTest, CanCreateIternalPayloadFromFileMessage) {
   EXPECT_NE(payload.AsFile(), nullptr);
   EXPECT_EQ(payload.AsStream(), nullptr);
   EXPECT_EQ(payload.AsBytes(), ByteArray());
-  EXPECT_EQ(payload.GetType(), Payload::Type::kFile);
-  EXPECT_EQ(payload.GetId(), payload.AsFile()->GetPayloadId());
+  EXPECT_EQ(payload.GetType(), PayloadType::kFile);
 }
 
 void CreateFileWithContents(Payload::Id payload_id, const ByteArray& contents) {
@@ -141,9 +139,9 @@ TEST(InternalPayloadFActoryTest,
   size_t size_after_skip = contents.size() - kOffset;
   Payload::Id payload_id = Payload::GenerateId();
   CreateFileWithContents(payload_id, contents);
+  InputFile inputFile(payload_id, contents.size());
   std::unique_ptr<InternalPayload> internal_payload =
-      CreateOutgoingInternalPayload(
-          Payload{payload_id, InputFile(payload_id, contents.size())});
+      CreateOutgoingInternalPayload(Payload{payload_id, std::move(inputFile)});
   EXPECT_NE(internal_payload, nullptr);
 
   ExceptionOr<size_t> result = internal_payload->SkipToOffset(kOffset);

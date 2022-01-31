@@ -16,9 +16,9 @@
 
 #include <regex>  //NOLINT
 
-#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/implementation/internal_payload.h"
 #include "connections/implementation/offline_frames.h"
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
 
 namespace location {
 namespace nearby {
@@ -330,6 +330,14 @@ Exception EnsureValidBandwidthUpgradeNegotiationFrame(
   return {Exception::kSuccess};
 }
 
+bool CheckForIllegalCharacters(std::string toBeValidated,
+                               std::vector<std::string> illegalPatterns) {
+  return !std::any_of(illegalPatterns.begin(), illegalPatterns.end(),
+                      [&toBeValidated](const auto& s) {
+                        return toBeValidated.find(s) != std::string::npos;
+                      });
+}
+
 }  // namespace
 
 Exception EnsureValidOfflineFrame(const OfflineFrame& offline_frame) {
@@ -352,6 +360,37 @@ Exception EnsureValidOfflineFrame(const OfflineFrame& offline_frame) {
       return {Exception::kInvalidProtocolBuffer};
 
     case V1Frame::PAYLOAD_TRANSFER:
+      if (offline_frame.has_v1() &&
+          (offline_frame.v1().payload_transfer().payload_header().has_type() &&
+           offline_frame.v1().payload_transfer().payload_header().type() ==
+               PayloadTransferFrame_PayloadHeader_PayloadType::
+                   PayloadTransferFrame_PayloadHeader_PayloadType_FILE)) {
+        if (offline_frame.v1()
+                .payload_transfer()
+                .payload_header()
+                .has_file_name()) {
+          if (!CheckForIllegalCharacters(offline_frame.v1()
+                                             .payload_transfer()
+                                             .payload_header()
+                                             .file_name(),
+                                         ILLEGAL_FILENAME_PATTERNS)) {
+            return {Exception::kIllegalCharacters};
+          }
+        }
+
+        if (offline_frame.v1()
+                .payload_transfer()
+                .payload_header()
+                .has_parent_folder()) {
+          if (!CheckForIllegalCharacters(offline_frame.v1()
+                                             .payload_transfer()
+                                             .payload_header()
+                                             .parent_folder(),
+                                         ILLEGAL_PARENT_FOLDER_PATTERNS)) {
+            return {Exception::kIllegalCharacters};
+          }
+        }
+      }
       if (offline_frame.has_v1() && offline_frame.v1().has_payload_transfer()) {
         return EnsureValidPayloadTransferFrame(
             offline_frame.v1().payload_transfer());

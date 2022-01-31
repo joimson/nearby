@@ -21,7 +21,6 @@
 
 namespace location {
 namespace nearby {
-namespace connections {
 namespace windows {
 
 enum StrategyDart {
@@ -78,6 +77,25 @@ struct PayloadDart {
   int64_t size;
   char *data;
 };
+
+static void ListenerInitiatedCB(const char *endpoint_id,
+                                const ConnectionResponseInfoW &connection_info);
+static void ListenerAcceptedCB(const char *endpoint_id);
+static void ListenerRejectedCB(const char *endpoint_id,
+                               connections::Status status);
+static void ListenerDisconnectedCB(const char *endpoint_id);
+static void ListenerBandwidthChangedCB(const char *endpoint_id,
+                                       connections::Medium medium);
+static void ListenerEndpointFoundCB(const char *endpoint_id,
+                                    const char *endpoint_info,
+                                    size_t endpoint_info_size,
+                                    const char *str_service_id);
+static void ListenerEndpointLostCB(const char *endpoint_id);
+static void ListenerEndpointDistanceChangedCB(const char *endpoint_id,
+                                              DistanceInfoW info);
+static void ListenerPayloadCB(const char *endpoint_id, PayloadW payload);
+static void ListenerPayloadProgressCB(const char *endpoint_id,
+                                      const PayloadProgressInfoW &info);
 
 // Starts advertising an endpoint for a local app.
 //
@@ -209,7 +227,6 @@ DLL_EXPORT void __stdcall SendPayloadDart(Core *pCore, const char *endpoint_id,
                                           Dart_Port result_cb);
 
 }  // namespace windows
-}  // namespace connections
 }  // namespace nearby
 }  // namespace location
 
