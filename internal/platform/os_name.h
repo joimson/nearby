@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,13 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "connections/implementation/offline_frames.h"
+#ifndef PLATFORM_OS_NAME_H_
+#define PLATFORM_OS_NAME_H_
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
-  location::nearby::ByteArray byte_array;
-  byte_array.SetData(reinterpret_cast<const char*>(data), size);
+namespace location {
+namespace nearby {
+namespace api {
 
-  location::nearby::connections::parser::FromBytes(byte_array);
+enum class OSName { kLinux, kWindows, kiOS, kChromeOS };
 
-  return 0;
-}
+}  // namespace api
+}  // namespace nearby
+}  // namespace location
+
+#endif  // PLATFORM_OS_NAME_H_
