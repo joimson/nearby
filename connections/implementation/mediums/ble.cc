@@ -20,6 +20,7 @@
 
 #include "absl/strings/escaping.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
+#include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
 #include "connections/implementation/mediums/utils.h"
 #include "internal/platform/prng.h"
 #include "internal/platform/logging.h"

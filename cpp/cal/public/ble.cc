@@ -89,10 +89,10 @@ bool cal::BleMedium::StopAcceptingConnections(const std::string& service_id) {
 std::unique_ptr<api::ClientGattConnection> cal::BleMedium::ConnectGatt(
     nearby::cal::api::BlePeripheral& peripheral,
     const api::GattCharacteristic& characteristic,
-    const api::ClientGattConnectionLifeCycleCallback& callback) {
+    api::ClientGattConnectionCallback callback) {
   // TODO(hais): real impl b/196132654.
-  return impl_->ConnectToGattServer(&peripheral, -1, PowerMode::kUnknown,
-                                    callback);
+  return impl_->ConnectToGattServer(peripheral, -1, PowerMode::kUnknown,
+                                    std::move(callback));
 }
 void cal::BleMedium::DisconnectGatt(
     api::BlePeripheral& peripheral,

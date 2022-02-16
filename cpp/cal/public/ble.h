@@ -88,7 +88,7 @@ class BleMedium final {
   std::unique_ptr<api::ClientGattConnection> ConnectGatt(
       api::BlePeripheral& peripheral,
       const api::GattCharacteristic& characteristic,
-      const api::ClientGattConnectionLifeCycleCallback& callback);
+      api::ClientGattConnectionCallback callback);
   void DisconnectGatt(api::BlePeripheral& peripheral,
                       const api::GattCharacteristic& characteristic);
   bool IsValid() const;
