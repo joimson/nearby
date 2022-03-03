@@ -42,6 +42,7 @@ class FeatureFlags {
     absl::Duration bwu_retry_exp_backoff_maximum_delay = absl::Seconds(300);
     // Support sending file and stream payloads starting from a non-zero offset.
     bool enable_send_payload_offset = true;
+    bool support_multiple_bwu_mediums = true;
   };
 
   static const FeatureFlags& GetInstance() {

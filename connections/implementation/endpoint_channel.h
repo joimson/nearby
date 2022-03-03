@@ -51,6 +51,9 @@ class EndpointChannel {
   // implementation that can be used in log messages; eg: BLUETOOTH, BLE, WIFI.
   virtual std::string GetType() const = 0;
 
+  // TODO
+  virtual std::string GetServiceId() const = 0;
+
   // Returns the name of the EndpointChannel.
   virtual std::string GetName() const = 0;
 
