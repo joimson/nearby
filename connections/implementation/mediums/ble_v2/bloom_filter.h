@@ -51,8 +51,10 @@ class BloomFilterBase {
     virtual size_t Size() const = 0;
   };
 
-  BloomFilterBase(const ByteArray& bytes, BitSet* bit_set);
+  explicit BloomFilterBase(BitSet* bit_set) : bits_(bit_set) {}
   virtual ~BloomFilterBase() = default;
+
+  void InheritBloomFilterByteArray(const ByteArray& bytes);
 
   constexpr static int kHasherNumberOfRepetitions = 5;
   std::vector<std::int32_t> GetHashes(const std::string& s);
@@ -66,12 +68,13 @@ class BloomFilterBase {
 template <size_t CapacityInBytes>
 class BloomFilter final : public BloomFilterBase {
  public:
-  BloomFilter() : BloomFilterBase(ByteArray{}, &bits_) {}
-  explicit BloomFilter(const ByteArray& bytes)
-      : BloomFilterBase(bytes, &bits_) {}
+  BloomFilter() : BloomFilterBase(&bits_) {}
+  explicit BloomFilter(const ByteArray& bytes) : BloomFilterBase(&bits_) {
+    InheritBloomFilterByteArray(bytes);
+  }
   BloomFilter(const BloomFilter&) = default;
   BloomFilter& operator=(const BloomFilter&) = default;
-  BloomFilter(BloomFilter&& other) : BloomFilterBase(ByteArray{}, &bits_) {
+  BloomFilter(BloomFilter&& other) : BloomFilterBase(&bits_) {
     *this = std::move(other);
   }
   BloomFilter& operator=(BloomFilter&& other) {

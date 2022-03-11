@@ -200,6 +200,16 @@ TEST(BloomFilterTest, RandomnessFalsePositiveRate) {
   EXPECT_LE(false_positives, 5);
 }
 
+TEST(BloomFilterTest, InheritBloomFilterByteArrayWorks) {
+  BloomFilter<10> bloom_filter;
+  bloom_filter.Add("ELEMENT_1");
+  ByteArray original_bloom_filter_bytes(bloom_filter);
+
+  BloomFilter<10> bloom_filter_inherited(original_bloom_filter_bytes);
+
+  EXPECT_TRUE(bloom_filter_inherited.PossiblyContains("ELEMENT_1"));
+}
+
 }  // namespace
 }  // namespace mediums
 }  // namespace connections

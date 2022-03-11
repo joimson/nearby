@@ -23,8 +23,7 @@ namespace nearby {
 namespace connections {
 namespace mediums {
 
-BloomFilterBase::BloomFilterBase(const ByteArray& bytes, BitSet* bit_set)
-    : bits_(bit_set) {
+void BloomFilterBase::InheritBloomFilterByteArray(const ByteArray& bytes) {
   const char* bytes_read_ptr = bytes.data();
   for (size_t byte_index = 0; byte_index < bytes.size(); byte_index++) {
     for (size_t bit_index = 0; bit_index < 8; bit_index++) {
